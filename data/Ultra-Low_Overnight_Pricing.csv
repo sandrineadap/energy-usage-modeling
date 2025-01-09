@@ -1,0 +1,5 @@
+Peak ID,Peak,Price ($/kWh)
+ULO,Ultra-low Overnight,0.028
+Wknd,Weekend Off-peak,0.087
+Mid,Mid-peak,0.122
+On,On-peak,0.286

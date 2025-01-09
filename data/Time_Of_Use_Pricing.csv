@@ -1,0 +1,4 @@
+Peak ID,Peak,Price ($/kWh)
+Off,Off-peak,0.087
+Mid,Mid-peak,0.122
+On,On-peak,0.182
