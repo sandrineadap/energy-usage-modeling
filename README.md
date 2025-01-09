@@ -1,6 +1,6 @@
-![energy usage visualization](./thumbnail-readme.gif)
-
 # Energy Usage Modeling for Data-Driven Decisions
+
+![energy usage visualization](./thumbnail-readme.gif)
 
 Electricity bills are determined based on your price plan. For example, in Oshawa, Ontario, you can choose between Time-of-Use (TOU), Tiered, and Ultra-Low Overnight (ULO) pricing plans.
 But how do we know which pricing plan best suits our needs?
