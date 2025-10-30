@@ -2,6 +2,7 @@
 # June 17, 2024
 # Using the hourly electricity consumption, determine what electricity plan should be used.
 
+# install.packages("tidyverse")  # if not already installed
 library(tidyverse)  # includes dplyr, tidyr, ggplot2, lubridate
                     # https://www.tidyverse.org/packages/
 
@@ -13,13 +14,16 @@ library(tidyverse)  # includes dplyr, tidyr, ggplot2, lubridate
 
 # load data from csv's in working directory
 getwd()
-usage <- read.csv('EnergyUsage-2022-01-01-2022-12-31.csv')
-usage_2023 <- read.csv('EnergyUsage-2023-01-01-2023-12-31.csv')
-usage_2024 <- read.csv('EnergyUsage-2024-01-01-2024-05-02.csv')
+usage <- read.csv('./data/EnergyUsage-2022-01-01-2022-12-31.csv')
+usage_2023 <- read.csv('./data/EnergyUsage-2023-01-01-2023-12-31.csv')
+usage_2024 <- read.csv('./data/EnergyUsage-2024-01-01-2024-05-02.csv')
 
 # put all energy data into usage dataframe
 usage <- rbind(usage, usage_2023)
 usage <- rbind(usage, usage_2024)
+
+usage <- usage %>% distinct()
+
 # View(usage) # should have 20,496 rows from 2022-May 2024
 
 # remove unneeded dataframes
@@ -28,14 +32,14 @@ rm(usage_2023)
 rm(usage_2024)
 
 # load pricing data for TOU, ULO, and Tiered
-tou_prices <- read.csv('Time_Of_Use_Pricing.csv')
-ulo_prices <- read.csv('Ultra-Low_Overnight_Pricing.csv')
-tier_prices <- read.csv('Tiered_Pricing.csv')
+tou_prices <- read.csv('./data/Time_Of_Use_Pricing.csv')
+ulo_prices <- read.csv('./data/Ultra-Low_Overnight_Pricing.csv')
+tier_prices <- read.csv('./data/Tiered_Pricing.csv')
 
 # load holiday schedule for 2022, 2023, and 2024
-holidays <- read.csv('Holiday_Schedule_2022.csv')
-holidays_2023 <- read.csv('Holiday_Schedule_2023.csv')
-holidays_2024 <- read.csv('Holiday_Schedule_2024.csv')
+holidays <- read.csv('./data/Holiday_Schedule_2022.csv')
+holidays_2023 <- read.csv('./data/Holiday_Schedule_2023.csv')
+holidays_2024 <- read.csv('./data/Holiday_Schedule_2024.csv')
 
 
 ############## PREPARING & CLEANING THE DATA
@@ -426,7 +430,7 @@ usage_final <- usage_prices %>%
 View(usage_final)
 
 # write data to csv
-write.csv(usage_final,"usage_data_final.csv", row.names = FALSE) 
+write.csv(usage_final,"./data/usage_data_final.csv", row.names = FALSE) 
   
 print ('CSV created Successfully :)')
 
