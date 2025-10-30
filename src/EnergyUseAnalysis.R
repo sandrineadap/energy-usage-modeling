@@ -15,7 +15,7 @@ library(dygraphs)
 library(xts)
 library(htmlwidgets)
 
-# usage_final <- read.csv('usage_data_final.csv')
+usage_final <- read.csv('./data/usage_data_final.csv')
 
 # Group data by day & summarize by the 3 price columns
 daily_data <- usage_final %>%
@@ -27,6 +27,7 @@ daily_data <- usage_final %>%
 #   group_by(year(DT_start), month(DT_start), Date) %>%
 #   summarize_at(vars(TOU_Price, ULO_Price, Tier_Price),
 #                list(name = sum))
+daily_data$Date <- as.Date(daily_data$Date)  # converts character to Date
 
 ## Simple plot
 daily_data %>%
@@ -61,13 +62,13 @@ monthly_data %>%
                  "ULO"="goldenrod", 
                  "Tier"="darkred")
     ) +
-    scale_linetype_manual(
-      name = "",
-      breaks = c("TOU", "ULO", "Tier"),
-      values = c("TOU"="solid", 
-                 "ULO"="solid", 
-                 "Tier"="solid")
-    ) +
+    # scale_linetype_manual(
+    #   name = "",
+    #   breaks = c("TOU", "ULO", "Tier"),
+    #   values = c("TOU"="solid", 
+    #              "ULO"="solid", 
+    #              "Tier"="solid")
+    # ) +
     ggtitle("Pricing Plans for Electricity Usage") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
@@ -89,7 +90,7 @@ p <- dygraph(daily, main = "Prices for Daily Electricity Usage") %>%
 p
 
 # save the widget
-saveWidget(p, file=paste0( getwd(), "/daily_data_interactive.html"))
+saveWidget(p, file=paste0( getwd(), "/results/daily_data_interactive.html"))
 
 
 # interactive monthly graph
@@ -114,7 +115,7 @@ q <- dygraph(monthly, main = "Prices for Monthly Electricity Usage") %>%
 q
 
 # save the widget
-saveWidget(q, file=paste0( getwd(), "/monthly_data_interactive.html"))
+saveWidget(q, file=paste0( getwd(), "/results/monthly_data_interactive.html"))
 
 
 # do we always go above 600 kWh? If so, by how much?
@@ -124,7 +125,19 @@ monthly_data <- usage_final %>%
   mutate(Year_Month = format(parse_date_time(paste(Year, Month, sep='-'), "ym"), "%Y-%m")) %>%
   group_by(Year, Year_Month) %>%
   summarize_at(c("Usage_kWh","TOU_Price", "ULO_Price", "Tier_Price"), sum)
+monthly_data <- monthly_data %>%
+  mutate(Above_600kWh = ifelse(Usage_kWh > 600, Usage_kWh - 600, 0))
+monthly_data
 
+# How many months per year are we above 600 kWh?
+monthly_data %>%
+  group_by(Year) %>%
+  summarize(Months_Above_600kWh = sum(Above_600kWh > 0))
 
-# How much energy are we using during each peak (specifically on-peak?)
-## stacked bar graph for each month's energy use
+# Which pricing plan is best for us?
+monthly_data %>%
+  summarize(
+    Total_TOU = sum(TOU_Price),
+    Total_Tier = sum(Tier_Price),
+    Total_ULO = sum(ULO_Price),
+  )

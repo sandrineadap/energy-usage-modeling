@@ -1,3 +1,6 @@
 EnergyUsage*.csv
 usage_data_final.csv
+
+daily_data_interactive*
+
 *.DS_Store
