@@ -124,20 +124,37 @@ monthly_data <- usage_final %>%
   mutate(Year = year(DT_start), Month = month(DT_start)) %>%
   mutate(Year_Month = format(parse_date_time(paste(Year, Month, sep='-'), "ym"), "%Y-%m")) %>%
   group_by(Year, Year_Month) %>%
-  summarize_at(c("Usage_kWh","TOU_Price", "ULO_Price", "Tier_Price"), sum)
+  summarize_at(c("Usage_kWh","TOU_Price", "ULO_Price", "Tier_Price"), sum) %>%
+  ungroup() %>%
+  mutate(
+    TOU_Price = round(TOU_Price, 2),
+    ULO_Price = round(ULO_Price, 2),
+    Tier_Price = round(Tier_Price, 2)
+  )
 monthly_data <- monthly_data %>%
   mutate(Above_600kWh = ifelse(Usage_kWh > 600, Usage_kWh - 600, 0))
-monthly_data
-
+monthly_data %>%
+  mutate(
+    TOU_Price  = sprintf("%.2f", TOU_Price),
+    ULO_Price  = sprintf("%.2f", ULO_Price),
+    Tier_Price = sprintf("%.2f", Tier_Price)
+  )
 # How many months per year are we above 600 kWh?
 monthly_data %>%
   group_by(Year) %>%
   summarize(Months_Above_600kWh = sum(Above_600kWh > 0))
 
-# Which pricing plan is best for us?
+# Which pricing plan is best for us? 
+# total cost per year per plan over the entire period in dollars to two decimal places
 monthly_data %>%
+  group_by(Year) %>%
   summarize(
-    Total_TOU = sum(TOU_Price),
-    Total_Tier = sum(Tier_Price),
-    Total_ULO = sum(ULO_Price),
+    Total_TOU = round(sum(TOU_Price),2),
+    Total_ULO = round(sum(ULO_Price),2),
+    Total_Tier = round(sum(Tier_Price),2)
+  ) %>%
+  mutate(
+    Total_TOU  = sprintf("%.2f", Total_TOU),
+    Total_ULO  = sprintf("%.2f", Total_ULO),
+    Total_Tier = sprintf("%.2f", Total_Tier)
   )
