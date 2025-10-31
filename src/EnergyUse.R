@@ -1,5 +1,3 @@
-# Sandrine Adap
-# June 17, 2024
 # Using the hourly electricity consumption, determine what electricity plan should be used.
 
 # install.packages("tidyverse")  # if not already installed
