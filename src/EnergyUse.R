@@ -22,7 +22,7 @@ usage_2024 <- read.csv('./data/EnergyUsage-2024-01-01-2024-05-02.csv')
 usage <- rbind(usage, usage_2023)
 usage <- rbind(usage, usage_2024)
 
-usage <- usage %>% distinct()
+# usage <- usage %>% distinct()
 
 # View(usage) # should have 20,496 rows from 2022-May 2024
 
@@ -307,6 +307,8 @@ usage_clean <- usage_ends %>%
   rename(Usage_kWh = Usage..kilowatt.hours.) %>%
   select(c(DT_start, DT_end, Usage_kWh))
 
+usage_clean <- usage_clean %>% distinct()
+
 View(usage_clean)
 
 ############## CALCULATIONS
@@ -335,9 +337,17 @@ usage_monthly <- usage_monthly %>%
 # Create Tier column (based on Monthly_Usage column)
 usage_options <- usage_monthly
 
-usage_options <- usage_options %>%
-  mutate(Tier = ifelse(Monthly_Usage > 600, "Tier 2", "Tier 1"))
+# # non seasonal tiers as specified by Oshawa Power
+# usage_options <- usage_options %>%
+#   mutate(Tier = ifelse(Monthly_Usage > 600, "Tier 2", "Tier 1"))
 
+# seasonal tiers as specified by Ontario Energy Board
+usage_options <- usage_options %>%
+  mutate(Tier = case_when(
+    month(DT_start) %in% 5:10 & Monthly_Usage > 600  ~ "Tier 2",  # Summer
+    month(DT_start) %in% c(11,12,1,2,3,4) & Monthly_Usage > 1000 ~ "Tier 2",  # Winter
+    TRUE ~ "Tier 1"
+  ))
 
 # Create TOU Peak column. (if statements) 
 

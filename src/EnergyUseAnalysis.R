@@ -143,7 +143,7 @@ View(monthly_data %>%
 # How many months per year are we above 600 kWh?
 monthly_data %>%
   group_by(Year) %>%
-  summarize(Months_Above_600kWh = sum(Above_600kWh > 0)
+  summarize(Months_Above_600kWh = sum(Above_600kWh > 0))
 
 # Which pricing plan is best for us? 
 # total cost per year per plan over the entire period in dollars to two decimal places
