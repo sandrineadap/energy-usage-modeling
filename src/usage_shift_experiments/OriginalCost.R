@@ -16,9 +16,6 @@ library(readxl)  # for reading Excel files
 
 # load data from csv's in working directory
 getwd()
-usage <- read_excel('./data/EnergyUsage-2025ElectricUsage.xlsx')
-
-View(usage)
 
 # load pricing data for TOU, ULO, and Tiered
 tou_prices <- read.csv('./data/Time_Of_Use_Pricing.csv')
@@ -26,17 +23,13 @@ ulo_prices <- read.csv('./data/Ultra-Low_Overnight_Pricing.csv')
 tier_prices <- read.csv('./data/Tiered_Pricing.csv')
 
 # load holiday schedule for 2022, 2023, and 2024
-holidays <- read.csv('./data/Holiday_Schedule_2022.csv')
-holidays_2023 <- read.csv('./data/Holiday_Schedule_2023.csv')
-holidays_2024 <- read.csv('./data/Holiday_Schedule_2024.csv')
+holidays <- read.csv('./data/Holiday_Schedule_2025.csv')
 
 
 ############## PREPARING & CLEANING THE DATA
 
 # HOLIDAYS: check for Date format
 str(holidays)       # Date is character
-str(holidays_2023)  # Date is character
-str(holidays_2024)  # Date is character
 
 # convert Date columns to R format Date
 ## separate Date column
@@ -60,50 +53,20 @@ holidays <- holidays %>% mutate(Date = make_datetime(Year, Month, Day), .before=
 holidays <- holidays %>%
   select(-c(Month, Day, Year))
 
-# convert Date columns in holidays_2023 & 2024
-## combine 2023 & 2024
-holidays_2023 <- rbind(holidays_2023, holidays_2024)
-
-## separate Date column
-holidays_2023 <- holidays_2023 %>%
-  separate(Date, into=c('Day_of_Week', 'Date', 'Year'), sep=', ', remove=T, convert=T)
-holidays_2023 <- holidays_2023 %>%
-  separate(Date, into=c('Month', 'Day'), sep=" ", remove=T, convert=T)
-
-## convert month names to integers
-month_nums <- match(holidays_2023$Month, month.name)
-str(month_nums)
-holidays_2023 <- holidays_2023 %>% mutate(Month = month_nums)
-class(holidays_2023$Month)
-
-## concatenate Year, Month, and Day Columns
-holidays_2023 <- holidays_2023 %>% mutate(Date = make_datetime(Year, Month, Day), .before=2)
-# View(holidays_2023)
-
-# remove Month, Day, Year columns
-holidays_2023 <- holidays_2023 %>%
-  select(-c(Month, Day, Year))
-
-# put all holiday data into holidays dataframe
-holidays <- rbind(holidays, holidays_2023)
-
 str(holidays)
 
 # convert R date to lubridate
 holidays <- holidays %>%
   mutate(Date = ymd(Date))
-# View(holidays)
-
-# holidays_test <- holidays
-
-# holidays_test <- holidays_test %>%
-#   mutate(Date = as.POSIXct(Date))
-# str(holidays$Date)
+View(holidays)
 
 # remove unneeded dataframes
-rm(holidays_2023)
-rm(holidays_2024)
 rm(month_nums)
+
+################ USAGE: load usage data
+usage <- read_excel('./data/EnergyUsage-2025ElectricUsage.xlsx', skip = 1)
+
+View(usage)
 
 # USAGE: separate Energy.consumption.time.period into
 # Date_start, Time_start, Date_end, Time_end
@@ -111,14 +74,19 @@ rm(month_nums)
 
 ## first separate the starting and ending dates from `Energy.consumption.time.period``
 usage <- usage %>%
-  separate(Energy.consumption.time.period, 
+  separate("Energy consumption time period", 
            into=c('Date_start', 'Date_end'),
            sep=' to ', remove=T, convert=T)
 
 ## Starting dates: separate starting date into its units of time
 usage <- usage %>%
   separate(Date_start, 
-           into=c('Year_start', 'Month_start', 'Day_start', 'Time_start'),
+           into=c('Year_start', 'Month_start', 'Day_start'),
+           sep='/', remove=T, convert=T) # changed separator to '/' based on data format
+
+usage <- usage %>%
+  separate(Day_start, 
+           into=c('Day_start', 'Time_start'),
            sep=' ', remove=T, convert=T)
 
 ## combine them to datetime format
@@ -129,7 +97,12 @@ str(usage$Date_start)
 ## Ending dates: separate starting date into its units of time
 usage <- usage %>%
   separate(Date_end, 
-           into=c('Year_end', 'Month_end', 'Day_end', 'Time_end'),
+           into=c('Year_end', 'Month_end', 'Day_end'),
+           sep='/', remove=T, convert=T)
+
+usage <- usage %>%
+  separate(Day_end, 
+           into=c('Day_end', 'Time_end'),
            sep=' ', remove=T, convert=T)
 
 ## combine them into datetime format
@@ -139,166 +112,49 @@ str(usage$Date_end)
 
 ## Remove unnecessary columns
 usage <- usage %>%
-  select(-c(Day_start, Year_end, Month_end, Day_end))
+  select(-c(Year_start, Month_start, Day_start, Year_end, Month_end, Day_end))
 
 # View(usage)
 str(usage)
 
-# Change start times from 12-hour to 24-hour
-usage_dt24 <- usage   # dt24 = for DateTime 24
-str(usage_dt24)
-
-## create AM/PM column
-suffixes <- rep(c('AM', 'PM'), each=12)
-usage_dt24 <- usage_dt24 %>%
-  mutate(suffix = rep_len(suffixes, length.out=nrow(usage_dt24)), .before=3)
-# View(usage_dt24)
-
-## Modify starting AM/PM for Daylight Savings time (March and November)
-## find which rows Daylight Savings time starts & ends (the first occurence)
-
-### 2022
-dst_start_2022 <- 
-  which(usage_dt24$Date_start == as.Date('2022-03-13') & 
-      usage_dt24$Time_start == '03:00')[1] # row 1731
-
-dst_end_2022 <- 
-  which(usage_dt24$Date_start == as.Date('2022-11-06') & 
-      usage_dt24$Time_start == '01:00')[1] # row 7442
-
-### 2023
-dst_start_2023 <-
-  which(usage_dt24$Date_start == as.Date('2023-03-12') & 
-      usage_dt24$Time_start == '03:00')[1] # row 10491
-
-dst_end_2023 <-
-  which(usage_dt24$Date_start == as.Date('2023-11-05') & 
-      usage_dt24$Time_start == '01:00')[1] # row 16202
-
-### 2024
-dst_start_2024 <-
-  which(usage_dt24$Date_start == as.Date('2024-03-10') & 
-      usage_dt24$Time_start == '03:00')[1] # row 19251
-
-# november hasn't happened yet, so just go until the end of the dataframe
-dst_end_2024 <- dim(usage_dt24)[1]
-
-# which(usage_dt24$Date_start == as.Date('2023-11-03') & 
-#       usage_dt24$Time_start == '01:00') 
-
-
-
-## modify AM/PM between those dates
-suffixes_EDT <- c(rep('AM', each=11), rep('PM', each=12), rep('AM', each=1))
-
-usage_dst <- usage_dt24 # dst = daylight savings time
-dstRows <- c(dst_start_2022:dst_end_2022) # daylight savings time rows for 2022
-# print(dstRows)
-
-### 2022
-### if the current row number is dstRows, replace suffix with suffixes_EDT.
-### if not, keep current suffix
-usage_dst <- usage_dst %>%
-  mutate(suffix = ifelse(row_number() %in% dstRows, suffixes_EDT, suffix))
-# View(usage_dst)
-
-### 2023
-dstRows <- c(dst_start_2023:dst_end_2023) # daylight savings time rows for 2023
-usage_dst <- usage_dst %>%
-  mutate(suffix = ifelse(row_number() %in% dstRows, suffixes_EDT, suffix))
-# View(usage_dst)
-
-### 2024
-dstRows <- c(dst_start_2024:dst_end_2024) # daylight savings time rows for 2023
-usage_dst <- usage_dst %>%
-  mutate(suffix = ifelse(row_number() %in% dstRows, suffixes_EDT, suffix))
-# View(usage_dst)
-
-## merge (paste) AM/PM column to Time_start column
-usage_dst <- usage_dst %>%
-  mutate(Time_start = paste(Time_start, suffix)) %>%
-  mutate(suffix = NULL)
-# View(usage_dst)
-
-## convert to 24-hour
-usage_dst <- usage_dst %>%
-  mutate(Time_start = strftime(strptime(Time_start, format="%I:%M %p"), format="%H:%M"))
-class(usage_dst$Time_start)
+# Times already in 24-hour format so skip that part
 
 # combine Date_start and Time_start into DT_start 
 # (so time can be used for lubridate manipulations)
-usage_dst <- usage_dst %>%
+usage <- usage %>%
   mutate(DT_start = paste(Date_start, Time_start), .before=1)
-class(usage_dst$DT_start)
+class(usage$DT_start)
 
 ## convert DT_start to DateTime
-usage_dst <- usage_dst %>% 
+usage <- usage %>% 
   mutate(DT_start = ymd_hm(DT_start))
-class(usage_dst$DT_start)
-# View(usage_dst)
-
-# Change ending times from 12-hour to 24-hour
-usage_ends <- usage_dst
-suffixes <- c(rep('AM', each=11), rep('PM', each=12), 'AM')
-
-## create suffix column for ending times
-usage_ends <- usage_ends %>%
-  mutate(suffix_end = rep_len(suffixes, length.out=nrow(usage_ends)), .before=8)
-# View(usage_ends)
-
-## Modify ending suffixes for Daylight Savings time (March and November)
-suffixes_EDT <- c(rep('AM', each=10), rep('PM', each=12), rep('AM', each=2))
-
-### 2022
-dstRows <- c(dst_start_2022:dst_end_2022) # daylight savings time rows for 2022
-usage_ends <- usage_ends %>%
-  mutate(suffix_end = ifelse(row_number() %in% dstRows, suffixes_EDT, suffix_end))
-
-### 2023
-dstRows <- c(dst_start_2023:dst_end_2023) # daylight savings time rows for 2023
-usage_ends <- usage_ends %>%
-  mutate(suffix_end = ifelse(row_number() %in% dstRows, suffixes_EDT, suffix_end))
-
-### 2024
-dstRows <- c(dst_start_2024:dst_end_2024) # daylight savings time rows for 2024
-usage_ends <- usage_ends %>%
-  mutate(suffix_end = ifelse(row_number() %in% dstRows, suffixes_EDT, suffix_end))
-
-# View(usage_ends)
-
-## merge (paste) AM/PM column to Time_start column
-usage_ends <- usage_ends %>%
-  mutate(Time_end = paste(Time_end, suffix_end)) %>%
-  mutate(suffix_end = NULL)
-# View(usage_ends)
-
-## convert to 24-hour
-usage_ends <- usage_ends %>%
-  mutate(Time_end = strftime(strptime(Time_end, format="%I:%M %p"), format="%H:%M"))
+class(usage$DT_start)
+View(usage)
 
 # combine Date_end and Time_end into DT_end 
 # (so time can be used for lubridate manipulations)
-usage_ends <- usage_ends %>% 
+usage <- usage %>% 
   mutate(DT_end = paste(Date_end, Time_end), .before=2)
 
 ## convert DT_end to DateTime
-usage_ends <- usage_ends %>% 
+usage <- usage %>% 
   mutate(DT_end = ymd_hm(DT_end))
-class(usage_ends$DT_end)
-# View(usage_ends)
+class(usage$DT_end)
+View(usage)
 
-
-# Create Day_Of_Week column from Date_start
 
 # Rename Usage..kilowatt.hours. to Usage_kWh
 # Also, remove unneeded/repetitive columns
-usage_clean <- usage_ends %>%
-  rename(Usage_kWh = Usage..kilowatt.hours.) %>%
+usage_clean <- usage %>%
+  rename(Usage_kWh = "Usage (kilowatt-hours)") %>%
   select(c(DT_start, DT_end, Usage_kWh))
 
 usage_clean <- usage_clean %>% distinct()
 
 View(usage_clean)
+
+
+# TODO: make sure the rest of this is correct
 
 ############## CALCULATIONS
 
