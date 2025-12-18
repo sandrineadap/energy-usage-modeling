@@ -370,7 +370,7 @@ usage_summary
 View(usage_summary)
 
 # # write data to csv
-write.csv(usage_summary,"./usage_summary.csv", row.names = FALSE) 
+write.csv(usage_summary,"./data/usage_summary.csv", row.names = FALSE) 
   
 # print ('CSV created Successfully :)')
 
